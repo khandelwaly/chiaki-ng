@@ -83,7 +83,6 @@ typedef struct chiaki_discovery_t
 {
 	ChiakiLog *log;
 	chiaki_socket_t socket;
-	bool send_failed; // last send failed (rate-limits "failed to send" logs)
 	struct sockaddr_storage local_addr;
 } ChiakiDiscovery;
 
