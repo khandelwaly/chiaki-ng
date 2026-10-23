@@ -20,6 +20,12 @@ jobs:
           brew update
           brew uninstall pkgconfig || true
           brew install --force qt@6 ffmpeg pkgconfig opus openssl@3 cmake ninja nasm protobuf@29 speexdsp libplacebo wget python-setuptools json-c miniupnpc libevent
+          # Ensure openssl@3 headers and the linked libcrypto are the same 3.5.x
+          # keg; a stale opt/openssl@3 symlink causes an undefined
+          # _OPENSSL_sk_set_thunks link error (3.5 headers vs older libcrypto).
+          brew upgrade openssl@3 || true
+          brew link --overwrite --force openssl@3
+          openssl version || true
 
       - name: Install sdl2-compat
         run: |
