@@ -25,6 +25,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_service_init(ChiakiDiscoveryServi
 	service->log = log;
 	service->options = *options;
 	service->ping_index = 0;
+	service->send_failed = false;
 
 	service->hosts = calloc(service->options.hosts_max, sizeof(ChiakiDiscoveryHost));
 	if(!service->hosts)
@@ -207,6 +208,7 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	// CHIAKI_LOGV(service->log, "Discovery Service sending ping");
 	ChiakiDiscoveryPacket packet = { 0 };
 	bool send_extra_broadcast = false;
+	bool send_failed_now = false;
 	packet.cmd = CHIAKI_DISCOVERY_CMD_SRCH;
 	packet.protocol_version = CHIAKI_DISCOVERY_PROTOCOL_VERSION_PS4;
 	if(((struct sockaddr *)service->options.send_addr)->sa_family == AF_INET)
@@ -224,7 +226,7 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 	}
 	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
-		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS4");
+		send_failed_now = true;
 	if(send_extra_broadcast)
 	{
 		for(int i = 0; i < service->options.broadcast_num; i++)
@@ -232,7 +234,7 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 			((struct sockaddr_in *)(&service->options.broadcast_addrs[i]))->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS4);
 			err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)&service->options.broadcast_addrs[i], service->options.send_addr_size);
 			if(err != CHIAKI_ERR_SUCCESS)
-				CHIAKI_LOGE(service->log, "Discovery Service failed to send extra broadcast ping for PS4");
+				send_failed_now = true;
 			else
 			{
 				char addr_string[INET_ADDRSTRLEN];
@@ -250,7 +252,7 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 		((struct sockaddr_in6 *)service->options.send_addr)->sin6_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
 	err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)service->options.send_addr, service->options.send_addr_size);
 	if(err != CHIAKI_ERR_SUCCESS)
-		CHIAKI_LOGE(service->log, "Discovery Service failed to send ping for PS5");
+		send_failed_now = true;
 	if(send_extra_broadcast)
 	{
 		for(int i = 0; i < service->options.broadcast_num; i++)
@@ -258,9 +260,16 @@ static void discovery_service_ping(ChiakiDiscoveryService *service)
 			((struct sockaddr_in *)(&service->options.broadcast_addrs[i]))->sin_port = htons(CHIAKI_DISCOVERY_PORT_PS5);
 			err = chiaki_discovery_send(&service->discovery, &packet, (struct sockaddr *)&service->options.broadcast_addrs[i], service->options.send_addr_size);
 			if(err != CHIAKI_ERR_SUCCESS)
-				CHIAKI_LOGE(service->log, "Discovery Service failed to send extra broadcast ping for PS5");
+				send_failed_now = true;
 		}
 	}
+	// Rate-limit discovery send failures: only log on a state change, so a
+	// remote setup with no route to a LAN console does not spam every tick.
+	if(send_failed_now && !service->send_failed)
+		CHIAKI_LOGE(service->log, "Discovery Service failed to send discovery pings (e.g. no route to host); suppressing repeats until recovery");
+	else if(!send_failed_now && service->send_failed)
+		CHIAKI_LOGI(service->log, "Discovery Service ping sending recovered");
+	service->send_failed = send_failed_now;
 }
 
 static void discovery_service_drop_old_hosts(ChiakiDiscoveryService *service)

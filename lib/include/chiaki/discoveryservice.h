@@ -39,6 +39,7 @@ typedef struct chiaki_discovery_service_t
 	ChiakiDiscovery discovery;
 
 	uint64_t ping_index;
+	bool send_failed; // last ping tick failed to send (rate-limits error logs)
 	ChiakiDiscoveryHost *hosts;
 	ChiakiDiscoveryServiceHostDiscoveryInfo *host_discovery_infos;
 	size_t hosts_count;
