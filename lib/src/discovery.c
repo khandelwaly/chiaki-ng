@@ -144,6 +144,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_init(ChiakiDiscovery *discovery, 
 		return CHIAKI_ERR_INVALID_DATA;
 
 	discovery->log = log;
+	discovery->send_failed = false;
 
 	discovery->socket = socket(family, SOCK_DGRAM, IPPROTO_UDP);
 	if(CHIAKI_SOCKET_IS_INVALID(discovery->socket))
@@ -251,9 +252,14 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_discovery_send(ChiakiDiscovery *discovery, 
 	int rc = sendto_broadcast(discovery->log, discovery->socket, buf, (size_t)len + 1, 0, addr, addr_size);
 	if(rc < 0 && addr->sa_family == AF_INET)
 	{
-		CHIAKI_LOGE(discovery->log, "Discovery failed to send: %s", strerror(errno));
+		if(!discovery->send_failed)
+		{
+			CHIAKI_LOGE(discovery->log, "Discovery failed to send: %s (suppressing repeats until recovery)", strerror(errno));
+			discovery->send_failed = true;
+		}
 		return CHIAKI_ERR_NETWORK;
 	}
+	discovery->send_failed = false;
 
 	return CHIAKI_ERR_SUCCESS;
 }
