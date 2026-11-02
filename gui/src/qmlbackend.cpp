@@ -212,7 +212,7 @@ static bool frame_can_use_direct_render(const AVFrame *frame, bool use_opengl_re
     }
 }
 
-#define PSN_DEVICES_TRIES 2
+#define PSN_DEVICES_TRIES 3
 #define MAX_PSN_RECONNECT_TRIES 6
 #define PSN_INTERNET_WAIT_SECONDS 5
 #define WAKEUP_PSN_IGNORE_SECONDS 10

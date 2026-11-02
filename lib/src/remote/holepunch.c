@@ -496,7 +496,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_holepunch_list_devices(
     CURLcode res = curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     if(res != CURLE_OK)
         CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_FAILONERROR failed with CURL error %s", curl_easy_strerror(res));
-    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    res = curl_easy_setopt(curl, CURLOPT_TIMEOUT, 15L);
     if(res != CURLE_OK)
         CHIAKI_LOGW(log, "chiaki_holepunch_list_devices: CURL setopt CURLOPT_TIMEOUT failed with CURL error %s", curl_easy_strerror(res));
     res = curl_easy_setopt(curl, CURLOPT_URL, url);
